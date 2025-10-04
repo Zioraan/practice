@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@layer base {
+  :root,
+  [data-theme="fellowship"] {
+    --color-background: #f4f1e9; /* Muted tan */
+    --color-surface: #efebe2; /* Slightly lighter surface for cards */
+    --color-surface-accent: #e8e2d5;
+    --color-text-primary: #4d4030; /* Dark brown ink */
+    --color-text-secondary: #7a6a53; /* Lighter brown */
+    --color-border: #dcd3c4; /* Wood/border color */
+    --color-border-hover: #4d4030;
+    --color-primary: #3a5f3a; /* Forest green */
+    --color-secondary: #8c6d3a; /* Muted gold */
+    --color-danger: #a85151; /* Rustic red */
+  }
+
+  [data-theme="sauron"] {
+    --color-background: #1c1c1c; /* Ash black */
+    --color-surface: #2a2a2a; /* Dark gray surface */
+    --color-surface-accent: #3a3a3a;
+    --color-text-primary: #e0e0e0; /* Off-white text */
+    --color-text-secondary: #a0a0a0; /* Gray text */
+    --color-border: #4a4a4a; /* Dark border */
+    --color-border-hover: #ff4136; /* Lava red */
+    --color-primary: #ff4136; /* Lava red */
+    --color-secondary: #e0e0e0; /* White */
+    --color-danger: #ff7670; /* Lighter red for contrast */
+  }
+
+  body {
+    background-color: transparent; /* Handled by ThemeBackground now */
+    color: var(--color-text-primary);
+  }
+}
+
+@keyframes corrupting-wipe-out {
+  from {
+    mask-position: 100% 100%;
+  }
+  to {
+    mask-position: 0% 0%;
+  }
+}
+
+.animate-theme-wipe {
+  mask-image: linear-gradient(135deg, transparent 45%, black 55%);
+  mask-size: 300% 300%;
+  mask-position: 100% 100%;
+  animation: corrupting-wipe-out 2.5s ease-in-out forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-card-wipe {
+  mask-image: linear-gradient(135deg, transparent 45%, black 55%);
+  mask-size: 300% 300%;
+  mask-position: 100% 100%;
+  animation: corrupting-wipe-out 0.8s ease-in-out forwards;
+}
