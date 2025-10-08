@@ -34,19 +34,14 @@ import {
   Briefcase,
   FileText,
   Calendar,
+  Tag as TagIcon,
 } from "lucide-react";
+import { TagSelector } from "@/components/tags/tag-selector";
+import { ContactAvatar } from "@/components/contacts/contact-avatar";
+import type { Contact, Tag } from "@/lib/types/contact";
 
-interface Contact {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  company: string | null;
-  job_title: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
+interface ContactWithTags extends Contact {
+  tags?: Tag[];
 }
 
 export default function ContactDetailPage() {
@@ -54,7 +49,7 @@ export default function ContactDetailPage() {
   const params = useParams();
   const { toast } = useToast();
   const supabase = createClient();
-  const [contact, setContact] = useState<Contact | null>(null);
+  const [contact, setContact] = useState<ContactWithTags | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -77,7 +72,15 @@ export default function ContactDetailPage() {
 
       if (error) throw error;
 
-      setContact(data);
+      // Fetch tags for this contact
+      const { data: tagData } = await supabase
+        .from("contact_tags")
+        .select("tag_id, tags(*)")
+        .eq("contact_id", params.id);
+
+      const tags = tagData?.map((ct: any) => ct.tags).filter(Boolean) || [];
+
+      setContact({ ...data, tags });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -200,16 +203,43 @@ export default function ContactDetailPage() {
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl">
-              {contact.first_name} {contact.last_name}
-            </CardTitle>
-            {contact.job_title && (
-              <CardDescription className="text-lg">
-                {contact.job_title}
-              </CardDescription>
-            )}
+            <div className="flex items-start gap-4">
+              <ContactAvatar
+                firstName={contact.first_name}
+                lastName={contact.last_name}
+                email={contact.email}
+                size="lg"
+              />
+              <div className="flex-1">
+                <CardTitle className="text-3xl">
+                  {contact.first_name} {contact.last_name}
+                </CardTitle>
+                {contact.job_title && (
+                  <CardDescription className="text-lg">
+                    {contact.job_title}
+                  </CardDescription>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Tags Section */}
+            <div className="flex items-start gap-3">
+              <TagIcon className="h-5 w-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Tags
+                </p>
+                <TagSelector
+                  contactId={contact.id}
+                  selectedTags={contact.tags || []}
+                  onTagsChange={fetchContact}
+                />
+              </div>
+            </div>
+
+            <div className="border-t pt-4" />
+
             <div className="grid gap-4">
               {contact.email && (
                 <div className="flex items-start gap-3">

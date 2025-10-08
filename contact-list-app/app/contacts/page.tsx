@@ -17,30 +17,33 @@ import {
 } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, LogOut, Mail, Phone, Building } from "lucide-react";
+import { Plus, Search, LogOut, Mail, Phone, Building, Download, Upload } from "lucide-react";
+import { TagManager } from "@/components/tags/tag-manager";
+import { Badge } from "@/components/ui/badge";
+import type { Contact, Tag } from "@/lib/types/contact";
+import { exportContactsToCSV, downloadCSV } from "@/lib/utils/csv";
+import { ContactAvatar } from "@/components/contacts/contact-avatar";
+import { ContactSkeleton } from "@/components/contacts/contact-skeleton";
+import { useDebounce } from "@/hooks/use-debounce";
 
-interface Contact {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  company: string | null;
-  job_title: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
+interface ContactWithTags extends Contact {
+  tags?: Tag[];
 }
 
 export default function ContactsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<ContactWithTags[]>([]);
+  const [filteredContacts, setFilteredContacts] = useState<ContactWithTags[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const CONTACTS_PER_PAGE = 12;
+  
+  // Debounced search for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     fetchUser();
@@ -51,7 +54,7 @@ export default function ContactsPage() {
   useEffect(() => {
     filterContacts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, contacts]);
+  }, [debouncedSearchQuery, contacts]);
 
   async function fetchUser() {
     const {
@@ -63,15 +66,29 @@ export default function ContactsPage() {
   async function fetchContacts() {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch contacts
+      const { data: contactsData, error: contactsError } = await supabase
         .from("contacts")
         .select("*")
         .order("first_name", { ascending: true });
 
-      if (error) throw error;
+      if (contactsError) throw contactsError;
 
-      setContacts(data || []);
-      setFilteredContacts(data || []);
+      // Fetch tags for each contact
+      const contactsWithTags = await Promise.all(
+        (contactsData || []).map(async (contact) => {
+          const { data: tagData } = await supabase
+            .from("contact_tags")
+            .select("tag_id, tags(*)")
+            .eq("contact_id", contact.id);
+
+          const tags = tagData?.map((ct: any) => ct.tags).filter(Boolean) || [];
+          return { ...contact, tags };
+        })
+      );
+
+      setContacts(contactsWithTags);
+      setFilteredContacts(contactsWithTags);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -84,12 +101,14 @@ export default function ContactsPage() {
   }
 
   function filterContacts() {
-    if (!searchQuery.trim()) {
+    setCurrentPage(1); // Reset to first page when filtering
+
+    if (!debouncedSearchQuery.trim()) {
       setFilteredContacts(contacts);
       return;
     }
 
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     const filtered = contacts.filter((contact) => {
       return (
         contact.first_name.toLowerCase().includes(query) ||
@@ -104,6 +123,12 @@ export default function ContactsPage() {
     setFilteredContacts(filtered);
   }
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredContacts.length / CONTACTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * CONTACTS_PER_PAGE;
+  const endIndex = startIndex + CONTACTS_PER_PAGE;
+  const paginatedContacts = filteredContacts.slice(startIndex, endIndex);
+
   async function handleLogout() {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -116,6 +141,25 @@ export default function ContactsPage() {
     }
     router.push("/auth/login");
     router.refresh();
+  }
+
+  function handleExportCSV() {
+    if (contacts.length === 0) {
+      toast({
+        title: "No contacts to export",
+        description: "Add some contacts first before exporting.",
+      });
+      return;
+    }
+
+    const csvContent = exportContactsToCSV(contacts);
+    const timestamp = new Date().toISOString().split("T")[0];
+    downloadCSV(csvContent, `contacts-${timestamp}.csv`);
+
+    toast({
+      title: "Export successful!",
+      description: `Exported ${contacts.length} contacts to CSV.`,
+    });
   }
 
   return (
@@ -149,18 +193,33 @@ export default function ContactsPage() {
               className="pl-10"
             />
           </div>
-          <Link href="/contacts/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Contact
+          <div className="flex gap-2">
+            <TagManager />
+            <Button variant="outline" onClick={handleExportCSV}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
             </Button>
-          </Link>
+            <Link href="/contacts/import">
+              <Button variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Import CSV
+              </Button>
+            </Link>
+            <Link href="/contacts/new">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Contact
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Contacts Grid */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Loading contacts...</p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ContactSkeleton key={i} />
+            ))}
           </div>
         ) : filteredContacts.length === 0 ? (
           <Card>
@@ -182,16 +241,25 @@ export default function ContactsPage() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredContacts.map((contact) => (
+            {paginatedContacts.map((contact) => (
               <Link key={contact.id} href={`/contacts/${contact.id}`}>
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                   <CardHeader>
-                    <CardTitle>
-                      {contact.first_name} {contact.last_name}
-                    </CardTitle>
-                    {contact.job_title && (
-                      <CardDescription>{contact.job_title}</CardDescription>
-                    )}
+                    <div className="flex items-start gap-3">
+                      <ContactAvatar
+                        firstName={contact.first_name}
+                        lastName={contact.last_name}
+                        email={contact.email}
+                      />
+                      <div className="flex-1">
+                        <CardTitle className="text-lg">
+                          {contact.first_name} {contact.last_name}
+                        </CardTitle>
+                        {contact.job_title && (
+                          <CardDescription>{contact.job_title}</CardDescription>
+                        )}
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {contact.email && (
@@ -212,6 +280,19 @@ export default function ContactsPage() {
                         <span>{contact.company}</span>
                       </div>
                     )}
+                    {contact.tags && contact.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {contact.tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            className="text-xs text-white border-none"
+                            style={{ backgroundColor: tag.color }}
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>
@@ -219,12 +300,58 @@ export default function ContactsPage() {
           </div>
         )}
 
-        {/* Results Count */}
+        {/* Pagination */}
         {!isLoading && filteredContacts.length > 0 && (
-          <p className="text-sm text-muted-foreground text-center mt-6">
-            Showing {filteredContacts.length} of {contacts.length} contact
-            {contacts.length !== 1 ? "s" : ""}
-          </p>
+          <div className="mt-6 space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Showing {startIndex + 1}-
+              {Math.min(endIndex, filteredContacts.length)} of{" "}
+              {filteredContacts.length} contact
+              {filteredContacts.length !== 1 ? "s" : ""}
+              {filteredContacts.length !== contacts.length &&
+                ` (filtered from ${contacts.length} total)`}
+            </p>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-10"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </main>
     </div>
