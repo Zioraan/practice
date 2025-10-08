@@ -45,11 +45,13 @@ Before deploying, you MUST add your Supabase credentials:
 Click **"Environment Variables"** and add:
 
 #### Variable 1:
+
 - **Name:** `NEXT_PUBLIC_SUPABASE_URL`
 - **Value:** `https://knrppqppafmuyvtbvhli.supabase.co`
 - **Environments:** Production, Preview, Development (select all)
 
 #### Variable 2:
+
 - **Name:** `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - **Value:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtucnBwcXBwYWZtdXl2dGJ2aGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MjE4ODUsImV4cCI6MjA3NTQ5Nzg4NX0.Vs-fHYVKgjBBpmX4a8WzGYo4OvtLKagzueBV1rCOAlQ`
 - **Environments:** Production, Preview, Development (select all)
@@ -69,6 +71,7 @@ Click **"Environment Variables"** and add:
 After deployment, test these features:
 
 #### ✅ Authentication
+
 - [ ] Visit your deployed URL
 - [ ] Click "Sign Up" and create a test account
 - [ ] Verify you receive the signup confirmation
@@ -76,6 +79,7 @@ After deployment, test these features:
 - [ ] Verify redirect to `/contacts` page
 
 #### ✅ CRUD Operations
+
 - [ ] **Create**: Add a new contact with all fields
 - [ ] **Read**: Verify the contact appears in the list
 - [ ] **Read**: Click on a contact to view details
@@ -85,12 +89,14 @@ After deployment, test these features:
 - [ ] **Delete**: Verify contact is removed
 
 #### ✅ Search & Filter
+
 - [ ] Use the search bar to find contacts by name
 - [ ] Search by email
 - [ ] Search by company
 - [ ] Verify results update in real-time
 
 #### ✅ UI/UX
+
 - [ ] Test dark/light theme toggle
 - [ ] Verify theme persists on page refresh
 - [ ] Test on mobile device (responsive design)
@@ -98,6 +104,7 @@ After deployment, test these features:
 - [ ] Verify loading states appear correctly
 
 #### ✅ Security
+
 - [ ] Log out
 - [ ] Try to access `/contacts` without authentication
 - [ ] Verify redirect to login page
@@ -109,21 +116,25 @@ After deployment, test these features:
 ## Troubleshooting
 
 ### Build Fails
+
 - Check that `contact-list-app` is set as the Root Directory
 - Verify all environment variables are added correctly
 - Check the build logs for specific errors
 
 ### "Invalid API Key" Error
+
 - Verify environment variables are copied exactly (no extra spaces)
 - Make sure both variables are set for all environments
 - Redeploy after adding/fixing environment variables
 
 ### Authentication Not Working
+
 - Check Supabase project is active (not paused)
 - Verify the Supabase URL and key match your project
 - Check browser console for specific error messages
 
 ### Can't See Contacts
+
 - Verify you're logged in with the correct account
 - Check Row Level Security policies in Supabase dashboard
 - Look at Network tab to see if API calls are succeeding
@@ -147,11 +158,13 @@ After deployment, you can:
 Your app is now set up for continuous deployment!
 
 **What this means:**
+
 - Every time you push to the `main` branch on GitHub
 - Vercel automatically builds and deploys your changes
 - You'll get a new production deployment with the latest code
 
 **Preview Deployments:**
+
 - Pull requests get their own preview URLs
 - Test changes before merging to main
 
@@ -174,6 +187,7 @@ Once you've completed all the smoke tests, Phase 2 is done!
 ### What's Next?
 
 **Phase 3: Post-MVP Enhancements** (Optional)
+
 - Add contact grouping/tagging
 - Implement CSV import/export
 - Enhanced theming options
@@ -185,6 +199,7 @@ Once you've completed all the smoke tests, Phase 2 is done!
 ## Support
 
 If you encounter any issues:
+
 1. Check the Vercel build logs
 2. Check the browser console for errors
 3. Verify environment variables are set correctly
